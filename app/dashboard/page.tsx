@@ -67,7 +67,7 @@ export default async function Dashboard() {
     <div className="min-h-screen bg-stone-50 text-slate-800 p-8">
       <div className="max-w-6xl mx-auto">
         
-        {/* Updated Header with Shop Profile Button */}
+        {/* Updated Header with Customers Button */}
         <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-10 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">My Garage</h1>
@@ -79,6 +79,12 @@ export default async function Dashboard() {
               className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-md shadow-sm transition-colors font-medium text-sm"
             >
               Shop Profile
+            </Link>
+            <Link 
+              href="/dashboard/customers" 
+              className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-md shadow-sm transition-colors font-medium text-sm"
+            >
+              Customers
             </Link>
             <Link 
               href="/dashboard/catalog" 

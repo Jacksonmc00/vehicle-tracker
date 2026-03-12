@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
+import PrintButton from './PrintButton';
 
 export default async function InvoiceView({
   params,
@@ -31,7 +32,7 @@ export default async function InvoiceView({
     }
   };
 
-  // 1. Fetch the invoice, linking back up the chain to get the vehicle info
+  // 1. Fetch the invoice, linking back up the chain to get vehicle AND customer info
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
     .select(`
@@ -39,7 +40,10 @@ export default async function InvoiceView({
       service_records (
         service_date,
         mileage_at_service,
-        vehicles ( id, make, model, year, trim )
+        vehicles ( 
+          id, make, model, year, trim, vin,
+          customers ( first_name, last_name, phone, email )
+        )
       )
     `)
     .eq('id', id)
@@ -64,6 +68,7 @@ export default async function InvoiceView({
     .eq('invoice_id', id);
 
   const vehicle = invoice.service_records?.vehicles;
+  const customer = vehicle?.customers;
 
   return (
     <div className="min-h-screen bg-stone-200 p-8 flex flex-col items-center">
@@ -88,6 +93,8 @@ export default async function InvoiceView({
               </button>
             </form>
           )}
+          {/* Using our new Client Component Button! */}
+          <PrintButton />
         </div>
       </div>
 
@@ -108,7 +115,6 @@ export default async function InvoiceView({
             <p className="text-slate-500 mt-2 font-mono text-sm">#{invoice.id.split('-')[0].toUpperCase()}</p>
           </div>
           <div className="text-right">
-            {/* NEW: Dynamic Shop Details pulling from your profile! */}
             <h2 className="text-xl font-bold text-slate-800">
               {shopProfile?.full_name || 'My Garage Services'}
             </h2>
@@ -122,15 +128,36 @@ export default async function InvoiceView({
 
         {/* Customer & Vehicle Info */}
         <div className="flex justify-between mb-12">
-          <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Billed To / Vehicle</h3>
-            <p className="text-lg font-bold text-slate-800">
-              {vehicle?.year} {vehicle?.make} {vehicle?.model} {vehicle?.trim}
-            </p>
-            <p className="text-slate-600 text-sm mt-1">
-              Mileage: {invoice.service_records?.mileage_at_service?.toLocaleString() || 'N/A'} km
-            </p>
+          
+          {/* Dedicated Billed To and Vehicle Sections */}
+          <div className="flex flex-col gap-6">
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Billed To</h3>
+              {customer ? (
+                <>
+                  <p className="text-lg font-bold text-slate-800">{customer.first_name} {customer.last_name}</p>
+                  <p className="text-slate-600 text-sm mt-1">
+                    {customer.phone && <span>{customer.phone} <br/></span>}
+                    {customer.email && <span>{customer.email}</span>}
+                  </p>
+                </>
+              ) : (
+                <p className="text-lg font-bold text-slate-800">Shop Vehicle (Internal)</p>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Vehicle</h3>
+              <p className="text-md font-bold text-slate-800">
+                {vehicle?.year} {vehicle?.make} {vehicle?.model} {vehicle?.trim}
+              </p>
+              <p className="text-slate-600 text-sm mt-1">
+                <span className="font-medium">VIN:</span> {vehicle?.vin || 'N/A'} <br />
+                <span className="font-medium">Mileage:</span> {invoice.service_records?.mileage_at_service?.toLocaleString() || 'N/A'} km
+              </p>
+            </div>
           </div>
+
           <div className="text-right">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Date of Service</h3>
             <p className="text-lg text-slate-800 font-medium">

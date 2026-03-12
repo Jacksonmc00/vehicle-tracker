@@ -24,7 +24,13 @@ export default async function EditVehicle({
 
   if (vehicleError || !vehicle) notFound();
 
-  // 2. Server Action to handle the update
+  // 2. Fetch customers to populate the dropdown
+  const { data: customers } = await supabase
+    .from('customers')
+    .select('*')
+    .order('last_name', { ascending: true });
+
+  // 3. Server Action to handle the update
   const updateVehicleAction = async (formData: FormData) => {
     'use server';
     const supabaseAction = await createClient();
@@ -34,10 +40,14 @@ export default async function EditVehicle({
     const model = formData.get('model') as string;
     const trim = formData.get('trim') as string;
     const mileage = formData.get('mileage') ? parseInt(formData.get('mileage') as string) : null;
+    
+    // Grab the selected customer ID
+    const customerId = formData.get('customerId') as string;
 
     const { error } = await supabaseAction
       .from('vehicles')
       .update({
+        customer_id: customerId ? customerId : null,
         year: year,
         make: make,
         model: model,
@@ -62,12 +72,30 @@ export default async function EditVehicle({
             &larr; Back to Vehicle Profile
           </Link>
           <h1 className="text-3xl font-bold text-slate-900">Edit Vehicle</h1>
-          <p className="text-slate-500 mt-1">Update details or log current mileage for this vehicle.</p>
+          <p className="text-slate-500 mt-1">Update details, log mileage, or assign an owner to this vehicle.</p>
         </header>
 
         <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
           <form action={updateVehicleAction} className="space-y-6">
             
+            {/* NEW: Customer Dropdown */}
+            <div className="border-b border-slate-100 pb-6 mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="customerId">Owner / Customer</label>
+              <select 
+                id="customerId" 
+                name="customerId" 
+                defaultValue={vehicle.customer_id || ""}
+                className="w-full rounded-md px-4 py-2 border border-slate-300 bg-stone-50 focus:ring-2 focus:ring-emerald-600 outline-none"
+              >
+                <option value="">-- Shop Vehicle (No Owner Assigned) --</option>
+                {customers?.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.first_name} {customer.last_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="year">Year *</label>

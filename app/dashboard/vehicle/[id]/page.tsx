@@ -41,7 +41,7 @@ export default async function VehicleProfile({
     revalidatePath(`/dashboard/vehicle/${id}`);
   };
 
-  // --- Generate Invoice Action (Now with Sales Tax Calculation) ---
+  // --- Generate Invoice Action (With Sales Tax Calculation) ---
   const generateInvoiceAction = async (formData: FormData) => {
     'use server';
     const recordId = formData.get('recordId') as string;
@@ -92,10 +92,13 @@ export default async function VehicleProfile({
     }
   };
 
-  // Fetch the vehicle
+  // Fetch the vehicle AND join the customer table so we can see who owns it!
   const { data: vehicle, error: vehicleError } = await supabase
     .from('vehicles')
-    .select('*')
+    .select(`
+      *,
+      customers ( first_name, last_name )
+    `)
     .eq('id', id)
     .single();
 
@@ -121,10 +124,36 @@ export default async function VehicleProfile({
           
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mt-2">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{vehicle.year} {vehicle.make} {vehicle.model}</h1>
-              <p className="text-slate-500 mt-1">Mileage: {vehicle.current_mileage ? vehicle.current_mileage.toLocaleString() : 'Not tracked'} km</p>
+              <h1 className="text-3xl font-bold text-slate-900">
+                {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim && <span className="text-slate-500 font-normal text-2xl">({vehicle.trim})</span>}
+              </h1>
               
-              <div className="flex items-center gap-4 mt-3 text-sm">
+              {/* NEW: Updated metadata row with Mileage, VIN, and Owner */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-slate-600">
+                <p>
+                  <span className="font-semibold text-slate-500">Mileage:</span> {vehicle.current_mileage ? vehicle.current_mileage.toLocaleString() : 'Not tracked'} km
+                </p>
+                
+                {vehicle.vin && (
+                  <>
+                    <span className="hidden sm:inline text-slate-300">•</span>
+                    <p>
+                      <span className="font-semibold text-slate-500">VIN:</span> <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-xs tracking-wider">{vehicle.vin}</span>
+                    </p>
+                  </>
+                )}
+
+                {vehicle.customers && (
+                  <>
+                    <span className="hidden sm:inline text-slate-300">•</span>
+                    <p>
+                      <span className="font-semibold text-slate-500">Owner:</span> <Link href="/dashboard/customers" className="text-emerald-700 hover:underline font-medium">{vehicle.customers.first_name} {vehicle.customers.last_name}</Link>
+                    </p>
+                  </>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-4 mt-4 text-sm">
                 <Link href={`/dashboard/vehicle/${id}/edit`} className="text-blue-600 hover:text-blue-800 font-medium">
                   Edit Vehicle Details
                 </Link>
