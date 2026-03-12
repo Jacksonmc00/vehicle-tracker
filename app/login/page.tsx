@@ -1,91 +1,84 @@
-import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+'use client';
 
-export default async function Login({
-  searchParams,
-}: {
-  searchParams: Promise<{ message: string }>
-}) {
-  // Await the search parameters (Next.js 15 requirement)
-  const { message } = await searchParams;
+import { useState } from 'react';
+import { loginAction, signupAction } from './actions';
+import { useSearchParams } from 'next/navigation';
 
-  const signIn = async (formData: FormData) => {
-    'use server'
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const supabase = await createClient()
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      return redirect('/login?message=Could not authenticate user')
-    }
-    return redirect('/dashboard')
-  }
-
-  const signUp = async (formData: FormData) => {
-    'use server'
-    const headersList = await headers()
-    const origin = headersList.get('origin')
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const supabase = await createClient()
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      return redirect('/login?message=Could not sign up user')
-    }
-    return redirect('/login?message=Check email to continue sign in process')
-  }
+export default function Login() {
+  // A simple toggle to switch between Login and Sign Up views
+  const [isSignUp, setIsSignUp] = useState(false);
+  
+  // Grab URL parameters to display error or success messages
+  const searchParams = useSearchParams();
+  const message = searchParams.get('message');
 
   return (
-    <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 mt-20 mx-auto">
-      <form className="flex-1 flex flex-col w-full justify-center gap-2 text-foreground">
+    <div className="min-h-screen bg-stone-50 flex flex-col justify-center items-center p-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-slate-200">
         
-        {/* If there is a message in the URL, display it here! */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-black text-slate-900">My Garage</h1>
+          <p className="text-slate-500 mt-2">
+            {isSignUp ? 'Create your shop account' : 'Welcome back'}
+          </p>
+        </div>
+
         {message && (
-          <div className="bg-stone-100 text-stone-800 p-4 rounded-md mb-6 text-center text-sm border border-stone-300">
+          <div className="bg-emerald-50 text-emerald-700 p-4 rounded-md mb-6 text-sm text-center font-medium border border-emerald-200">
             {message}
           </div>
         )}
 
-        <label className="text-md" htmlFor="email">Email</label>
-        <input 
-          className="rounded-md px-4 py-2 bg-inherit border mb-6" 
-          name="email" 
-          placeholder="you@example.com" 
-          required 
-          autoComplete="email" 
-        />
-        
-        <label className="text-md" htmlFor="password">Password</label>
-        <input 
-          className="rounded-md px-4 py-2 bg-inherit border mb-6" 
-          type="password" 
-          name="password" 
-          placeholder="••••••••" 
-          required 
-          autoComplete="current-password" 
-        />
-        
-        <button formAction={signIn} className="bg-emerald-700 text-white rounded-md px-4 py-2 mb-2 hover:bg-emerald-800 transition-colors">
-          Sign In
-        </button>
-        <button formAction={signUp} className="border border-stone-300 rounded-md px-4 py-2 mb-2 hover:bg-stone-50 transition-colors">
-          Sign Up
-        </button>
-      </form>
+        <form action={isSignUp ? signupAction : loginAction} className="space-y-4">
+          
+          {/* These fields ONLY show up if the user is signing up */}
+          {isSignUp && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="fullName">Shop / Full Name *</label>
+                <input type="text" id="fullName" name="fullName" required className="w-full rounded-md px-4 py-2 border border-slate-300 bg-stone-50 focus:ring-2 focus:ring-emerald-600 outline-none" placeholder="e.g. Russell Auto Repair" />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="phone">Phone Number *</label>
+                <input type="tel" id="phone" name="phone" required className="w-full rounded-md px-4 py-2 border border-slate-300 bg-stone-50 focus:ring-2 focus:ring-emerald-600 outline-none" placeholder="(555) 123-4567" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="address">Business Address *</label>
+                <input type="text" id="address" name="address" required className="w-full rounded-md px-4 py-2 border border-slate-300 bg-stone-50 focus:ring-2 focus:ring-emerald-600 outline-none" placeholder="123 Main St, Russell, ON" />
+              </div>
+            </>
+          )}
+
+          {/* Standard Login Fields */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="email">Email Address *</label>
+            <input type="email" id="email" name="email" required className="w-full rounded-md px-4 py-2 border border-slate-300 bg-stone-50 focus:ring-2 focus:ring-emerald-600 outline-none" placeholder="you@example.com" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="password">Password *</label>
+            <input type="password" id="password" name="password" required className="w-full rounded-md px-4 py-2 border border-slate-300 bg-stone-50 focus:ring-2 focus:ring-emerald-600 outline-none" placeholder="••••••••" />
+          </div>
+
+          <button type="submit" className="w-full bg-slate-900 hover:bg-black text-white font-medium px-4 py-3 rounded-md shadow-sm transition-colors mt-6">
+            {isSignUp ? 'Create Account' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-sm text-slate-500 border-t border-slate-100 pt-6">
+          {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+          <button 
+            type="button" 
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold"
+          >
+            {isSignUp ? 'Log In' : 'Sign Up'}
+          </button>
+        </div>
+
+      </div>
     </div>
-  )
+  );
 }
